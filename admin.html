@@ -162,10 +162,6 @@
       text-align: center;
       margin: 10px 0;
     }
-
-    #scriptUrl {
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -175,8 +171,6 @@
   </div>
 
   <h2>Monitoring Entrées & Sorties</h2>
-
-  <input type="hidden" id="scriptUrl" value="https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec">
 
   <!-- Fiche du dernier membre scanné -->
   <div class="card" id="latest-scan">
@@ -191,43 +185,32 @@
 
   <script>
     let lastScanKey = null;
-    const DEFAULT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
-    const urlInput = document.getElementById("scriptUrl");
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
 
     function nettoyerHeure(heureBrute) {
       if (!heureBrute) return "--:--:--";
-      const strHeure = String(heureBrute).trim();
-      
-      // Extraction si format ISO (ex: 1899-12-30T09:58:12.000Z)
-      if (strHeure.includes("T")) {
-        const timePart = strHeure.split("T")[1];
-        return timePart ? timePart.substring(0, 8) : strHeure;
+      const str = String(heureBrute).trim();
+      if (str.includes("T")) {
+        const parts = str.split("T")[1];
+        return parts ? parts.substring(0, 8) : str;
       }
-      
-      // Extraction si format avec espace (ex: 2026-09-03 09:58:12)
-      if (strHeure.includes(" ")) {
-        const parts = strHeure.split(" ");
-        return parts[1] ? parts[1].substring(0, 8) : strHeure;
-      }
-
-      return strHeure.substring(0, 8);
+      return str.substring(0, 8);
     }
 
     async function checkNewScans() {
-      const webAppUrl = (urlInput && urlInput.value.trim()) ? urlInput.value.trim() : DEFAULT_URL;
       try {
-        const response = await fetch(`${webAppUrl}?action=getLastScan`);
+        const response = await fetch(`${SCRIPT_URL}?action=getLastScan`);
         const data = await response.json();
 
         if (data && data.success && data.scan) {
-          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure) + "_" + String(data.scan.statut);
+          const currentScanKey = `${data.scan.id}_${data.scan.heure}_${data.scan.statut}`;
           if (currentScanKey !== lastScanKey) {
             lastScanKey = currentScanKey;
             updateDashboard(data.scan, data.history);
           }
         }
       } catch (error) {
-        console.error("Erreur de connexion Apps Script :", error);
+        console.error("Erreur de récupération des données :", error);
       }
     }
 
@@ -280,7 +263,6 @@
       }
     }
 
-    // Lancement de la boucle
     setInterval(checkNewScans, 2500);
     checkNewScans();
   </script>
