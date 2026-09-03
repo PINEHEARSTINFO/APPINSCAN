@@ -71,12 +71,10 @@
       color: white;
     }
 
-    /* Style si c'est une Entrée */
     .status-box.entree {
       background-color: #00b894;
     }
 
-    /* Style si c'est une Sortie */
     .status-box.sortie {
       background-color: #e17055;
     }
@@ -199,20 +197,29 @@
     function nettoyerHeure(heureBrute) {
       if (!heureBrute) return "--:--:--";
       const strHeure = String(heureBrute).trim();
-      if (strHeure.indexOf("T") !== -1) {
-        const parts = strHeure.split("T")[1];
-        return parts ? parts.substring(0, 8) : strHeure;
+      
+      // Extraction si format ISO (ex: 1899-12-30T09:58:12.000Z)
+      if (strHeure.includes("T")) {
+        const timePart = strHeure.split("T")[1];
+        return timePart ? timePart.substring(0, 8) : strHeure;
       }
+      
+      // Extraction si format avec espace (ex: 2026-09-03 09:58:12)
+      if (strHeure.includes(" ")) {
+        const parts = strHeure.split(" ");
+        return parts[1] ? parts[1].substring(0, 8) : strHeure;
+      }
+
       return strHeure.substring(0, 8);
     }
 
     async function checkNewScans() {
-      const webAppUrl = urlInput.value.trim() || DEFAULT_URL;
+      const webAppUrl = (urlInput && urlInput.value.trim()) ? urlInput.value.trim() : DEFAULT_URL;
       try {
         const response = await fetch(`${webAppUrl}?action=getLastScan`);
         const data = await response.json();
 
-        if (data.success && data.scan) {
+        if (data && data.success && data.scan) {
           const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure) + "_" + String(data.scan.statut);
           if (currentScanKey !== lastScanKey) {
             lastScanKey = currentScanKey;
@@ -220,7 +227,7 @@
           }
         }
       } catch (error) {
-        console.error("Erreur de connexion :", error);
+        console.error("Erreur de connexion Apps Script :", error);
       }
     }
 
@@ -273,6 +280,7 @@
       }
     }
 
+    // Lancement de la boucle
     setInterval(checkNewScans, 2500);
     checkNewScans();
   </script>
