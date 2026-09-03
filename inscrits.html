@@ -141,7 +141,7 @@
     <img src="logo.png" alt="Logo ASTER" id="app-logo">
   </div>
 
-  <h2>Monitoring Entrées en Direct</h2>
+  <h2>Monitoring Entrées & Sorties</h2>
 
   <!-- Historique des récents passages -->
   <div class="section-title">Derniers passages</div>
@@ -182,7 +182,7 @@
         const data = await response.json();
 
         if (data.success && data.scan) {
-          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure);
+          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure) + "_" + String(data.scan.statut);
           if (currentScanKey !== lastScanKey) {
             lastScanKey = currentScanKey;
             updateDashboard(data.history);
@@ -201,6 +201,10 @@
             ? item.photoUrl 
             : 'https://via.placeholder.com/36?text=?';
 
+          // Détection de la couleur selon le statut (Entrée = Vert, Sortie = Rouge)
+          const isEntree = (item.statut === "Entrée");
+          const colorTime = isEntree ? "#00b894" : "#d63031";
+
           return `
             <div class="history-item">
               <div class="user-info">
@@ -210,7 +214,7 @@
                   <small style="color:#666;">(${item.id || ''})</small>
                 </span>
               </div>
-              <span style="color:#00b894; font-weight:bold; margin-left: 10px;">${nettoyerHeure(item.heure)}</span>
+              <span style="color:${colorTime}; font-weight:bold; margin-left: 10px;">${nettoyerHeure(item.heure)}</span>
             </div>
           `;
         }).join('');
