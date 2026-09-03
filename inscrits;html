@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liste des Inscrits - ASTER</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 15px;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    h2 { margin-top: 0; color: #333; }
+    .badge-count {
+      background: #1ba1b5;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.9em;
+    }
+    .search-bar {
+      width: 100%;
+      padding: 10px;
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    .member-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    .member-item:last-child { border-bottom: none; }
+    .member-info { display: flex; align-items: center; gap: 10px; }
+    .thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background: #eee;
+    }
+    .member-name { font-weight: bold; color: #333; }
+    .member-id { font-size: 0.8em; color: #777; }
+    .status-badge {
+      font-size: 0.75em;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .status-badge.present { background: #e6f9f5; color: #00b894; }
+    .status-badge.sorti { background: #ffecec; color: #d63031; }
+    .status-badge.absent { background: #f0f0f0; color: #888; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Liste des Inscrits <span class="badge-count" id="total-count">0</span></h2>
+    
+    <input type="text" id="search-input" class="search-bar" placeholder="Rechercher un membre par nom ou ID..." onkeyup="filtrerMembres()">
+
+    <div id="inscrits-list">
+      <p style="color: #aaa;">Chargement des membres...</p>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
+    let tousLesMembres = [];
+
+    async function chargerInscrits() {
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=getInscrits`);
+        const data = await response.json();
+
+        if (data && data.success) {
+          tousLesMembres = data.inscrits;
+          document.getElementById("total-count").innerText = data.total;
+          afficherMembres(tousLesMembres);
+        } else {
+          document.getElementById("inscrits-list").innerHTML = '<p>Erreur lors du chargement.</p>';
+        }
+      } catch (e) {
+        console.error(e);
+        document.getElementById("inscrits-list").innerHTML = '<p>Impossible de contacter le serveur.</p>';
+      }
+    }
+
+    function afficherMembres(liste) {
+      const container = document.getElementById("inscrits-list");
+      if (liste.length === 0) {
+        container.innerHTML = '<p style="color:#aaa;">Aucun membre trouvé.</p>';
+        return;
+      }
+
+      container.innerHTML = liste.map(m => {
+        const photo = (m.photoUrl && m.photoUrl.length > 5) ? m.photoUrl : 'https://via.placeholder.com/40?text=?';
+        let statusClass = "absent";
+        const st = m.statut.toLowerCase();
+        if (st.includes("present") || st.includes("présent")) statusClass = "present";
+        if (st.includes("sorti")) statusClass = "sorti";
+
+        return `
+          <div class="member-item">
+            <div class="member-info">
+              <img class="thumb" src="${photo}" alt="Photo">
+              <div>
+                <div class="member-name">${m.nom || 'Sans nom'}</div>
+                <div class="member-id">${m.id || ''}</div>
+              </div>
+            </div>
+            <span class="status-badge ${statusClass}">${m.statut}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filtrerMembres() {
+      const query = document.getElementById("search-input").value.toLowerCase();
+      const membresFiltres = tousLesMembres.filter(m => 
+        m.nom.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)
+      );
+      afficherMembres(membresFiltres);
+    }
+
+    chargerInscrits();
+  </script>
+</body>
+</html>
