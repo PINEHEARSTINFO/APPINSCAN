@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tableau de Bord - Contrôle d'Entrée ASTER</title>
+  <title>Tableau de Bord - Monitoring Entrées ASTER</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,7 +14,31 @@
     }
     h2 {
       color: #333;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+    }
+    .config-box {
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 15px;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+      text-align: left;
+      font-size: 0.85em;
+    }
+    .config-box label {
+      font-weight: bold;
+      color: #555;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .config-box input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9em;
     }
     .card {
       background: white;
@@ -42,7 +66,6 @@
     .status-box h3 {
       margin: 5px 0;
       font-size: 1.3em;
-      text-transform: capitalize;
     }
     .status-box p {
       margin: 3px 0;
@@ -77,6 +100,12 @@
 <body>
 
   <h2>Monitoring Entrées en Direct</h2>
+
+  <!-- Configuration de l'URL Google Apps Script -->
+  <div class="config-box">
+    <label for="scriptUrl">URL du déploiement Google Apps Script :</label>
+    <input type="text" id="scriptUrl" value="https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec" onchange="sauvegarderUrl()">
+  </div>
   
   <!-- Fiche du dernier membre scanné -->
   <div class="card" id="latest-scan">
@@ -90,18 +119,61 @@
   </div>
 
   <script>
-    // URL de votre Web App Google Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec"; 
-    
     let lastScanKey = null;
 
+    const DEFAULT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
+
+    // Charger l'URL enregistrée en cache ou utiliser l'URL par défaut
+    const urlInput = document.getElementById("scriptUrl");
+    const storedUrl = localStorage.getItem("apps_script_url");
+    
+    if (storedUrl) {
+      urlInput.value = storedUrl;
+    } else {
+      urlInput.value = DEFAULT_URL;
+      localStorage.setItem("apps_script_url", DEFAULT_URL);
+    }
+
+    function sauvegarderUrl() {
+      const url = urlInput.value.trim();
+      localStorage.setItem("apps_script_url", url);
+      checkNewScans();
+    }
+
+    // Fonction de correction de l'heure (Conversion UTC/GMT -> Europe/Paris)
+    function corrigerHeure(heureBrute) {
+      if (!heureBrute) return "";
+      
+      const parts = heureBrute.split(':');
+      if (parts.length >= 2) {
+        const now = new Date();
+        const dateUtc = new Date(Date.UTC(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10),
+          parts[2] ? parseInt(parts[2], 10) : 0
+        ));
+        
+        return dateUtc.toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZone: 'Europe/Paris'
+        });
+      }
+      return heureBrute;
+    }
+
     async function checkNewScans() {
+      const webAppUrl = urlInput.value.trim() || DEFAULT_URL;
+
       try {
-        const response = await fetch(`${WEB_APP_URL}?action=getLastScan`);
+        const response = await fetch(`${webAppUrl}?action=getLastScan`);
         const data = await response.json();
 
         if (data.success && data.scan) {
-          // Génération d'une clé unique basée sur l'ID et l'heure
           const currentScanKey = data.scan.id + "_" + data.scan.heure;
           
           if (currentScanKey !== lastScanKey) {
@@ -110,37 +182,39 @@
           }
         }
       } catch (error) {
-        console.error("Erreur de synchronisation avec le serveur :", error);
+        console.error("Erreur de communication avec le script Google Apps Script :", error);
       }
     }
 
     function updateDashboard(latest, history) {
-      // 1. Mise à jour de la carte principale
+      const heureCorrige = corrigerHeure(latest.heure);
+
+      // Mise à jour du bloc principal
       const latestContainer = document.getElementById("latest-scan");
-      const photoSrc = latest.photoUrl && latest.photoUrl.length > 5 ? latest.photoUrl : "https://via.placeholder.com/110";
+      const photoSrc = (latest.photoUrl && latest.photoUrl.length > 5) ? latest.photoUrl : "https://via.placeholder.com/110";
       
       latestContainer.innerHTML = `
         <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom}">
         <div class="status-box">
-          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${latest.heure})</p>
+          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureCorrige})</p>
           <h3>${latest.nom}</h3>
           <p>ID : ${latest.id}</p>
         </div>
       `;
 
-      // 2. Mise à jour de la liste d'historique
+      // Mise à jour de la liste d'historique
       const historyContainer = document.getElementById("history-list");
       if (history && history.length > 0) {
         historyContainer.innerHTML = history.map(item => `
           <div class="history-item">
             <span><strong>${item.nom}</strong> <small style="color:#666;">(${item.id})</small></span>
-            <span style="color:#00b894; font-weight:bold;">${item.heure}</span>
+            <span style="color:#00b894; font-weight:bold;">${corrigerHeure(item.heure)}</span>
           </div>
         `).join('');
       }
     }
 
-    // Interroger le serveur toutes les 2.5 secondes
+    // Interrogation automatique du serveur toutes les 2,5 secondes
     setInterval(checkNewScans, 2500);
     checkNewScans();
   </script>
