@@ -2,51 +2,44 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Adaptation stricte pour l'affichage mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tableau de Bord - Monitoring Entrées ASTER</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f6f9;
       margin: 0;
-      padding: 15px;
+      padding: 12px;
       text-align: center;
+      width: 100%;
+    }
+    .logo-container {
+      margin: 10px auto 15px auto;
+      max-width: 180px;
+    }
+    .logo-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
     }
     h2 {
       color: #333;
-      margin-bottom: 15px;
-    }
-    .config-box {
-      background: #ffffff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px 15px;
-      max-width: 400px;
-      margin: 0 auto 20px auto;
-      text-align: left;
-      font-size: 0.85em;
-    }
-    .config-box label {
-      font-weight: bold;
-      color: #555;
-      display: block;
-      margin-bottom: 5px;
-    }
-    .config-box input {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 0.9em;
+      margin: 10px 0 15px 0;
+      font-size: 1.4em;
     }
     .card {
       background: white;
       border-radius: 12px;
-      padding: 20px;
+      padding: 18px 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       max-width: 400px;
-      margin: 0 auto 25px auto;
+      width: 100%;
+      margin: 0 auto 20px auto;
     }
     .avatar {
       width: 110px;
@@ -60,19 +53,22 @@
       background-color: #00b894;
       color: white;
       border-radius: 8px;
-      padding: 15px;
+      padding: 15px 10px;
       margin-top: 10px;
     }
     .status-box h3 {
       margin: 5px 0;
       font-size: 1.3em;
+      word-break: break-word;
     }
     .status-box p {
       margin: 3px 0;
+      font-size: 0.9em;
     }
     .history-container {
       text-align: left;
       max-width: 400px;
+      width: 100%;
       margin: 0 auto;
       background: white;
       border-radius: 8px;
@@ -82,7 +78,7 @@
     .history-item {
       border-bottom: 1px solid #eee;
       padding: 10px 0;
-      font-size: 0.9em;
+      font-size: 0.85em;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -95,69 +91,51 @@
       text-align: center;
       margin: 10px 0;
     }
+    
+    /* Masquer discrètement l'input URL */
+    #scriptUrl {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Logo de l'événement -->
+  <div class="logo-container">
+    <img src="logo.png" alt="Logo ASTER" id="app-logo">
+  </div>
+
   <h2>Monitoring Entrées en Direct</h2>
 
-  <!-- Configuration de l'URL Google Apps Script -->
-  <div class="config-box">
-    <label for="scriptUrl">URL du déploiement Google Apps Script :</label>
-    <input type="text" id="scriptUrl" value="https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec" onchange="sauvegarderUrl()">
-  </div>
-  
+  <!-- URL conservée en arrière-plan -->
+  <input type="hidden" id="scriptUrl" value="https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec">
+
   <!-- Fiche du dernier membre scanné -->
   <div class="card" id="latest-scan">
     <p class="empty-msg">En attente du premier scan...</p>
   </div>
 
   <!-- Historique des récents passages -->
-  <h3>Derniers passages</h3>
+  <h3 style="font-size: 1.1em; color: #444; margin-bottom: 10px;">Derniers passages</h3>
   <div class="history-container" id="history-list">
     <p class="empty-msg">Aucun historique récent</p>
   </div>
 
   <script>
     let lastScanKey = null;
-
     const DEFAULT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
-
     const urlInput = document.getElementById("scriptUrl");
-    const storedUrl = localStorage.getItem("apps_script_url");
-    
-    if (storedUrl) {
-      urlInput.value = storedUrl;
-    } else {
-      urlInput.value = DEFAULT_URL;
-      localStorage.setItem("apps_script_url", DEFAULT_URL);
-    }
 
-    function sauvegarderUrl() {
-      const url = urlInput.value.trim();
-      localStorage.setItem("apps_script_url", url);
-      lastScanKey = null;
-      checkNewScans();
-    }
-
-    // Traitement universel et sécurisé de l'heure
+    // Traitement propre de l'affichage de l'heure
     function nettoyerHeure(heureBrute) {
-      if (heureBrute === null || heureBrute === undefined || heureBrute === "") return "--:--:--";
-      
+      if (!heureBrute) return "--:--:--";
       const strHeure = String(heureBrute).trim();
       
-      // Si format ISO (ex: 1899-12-30T14:25:00.000Z ou 2026-09-03T14:25:00)
       if (strHeure.indexOf("T") !== -1) {
         const parts = strHeure.split("T")[1];
         return parts ? parts.substring(0, 8) : strHeure;
       }
-      
-      // Si format HH:mm:ss ou similaire
-      if (strHeure.length >= 5) {
-        return strHeure.substring(0, 8);
-      }
-      
-      return strHeure;
+      return strHeure.substring(0, 8);
     }
 
     async function checkNewScans() {
@@ -176,14 +154,13 @@
           }
         }
       } catch (error) {
-        console.error("Erreur de communication avec Google Apps Script :", error);
+        console.error("Erreur de connexion au serveur :", error);
       }
     }
 
     function updateDashboard(latest, history) {
       const heureAffichee = nettoyerHeure(latest.heure);
 
-      // Mise à jour du bloc principal
       const latestContainer = document.getElementById("latest-scan");
       const photoSrc = (latest.photoUrl && String(latest.photoUrl).length > 5) ? latest.photoUrl : "https://via.placeholder.com/110";
       
@@ -196,7 +173,6 @@
         </div>
       `;
 
-      // Mise à jour de l'historique
       const historyContainer = document.getElementById("history-list");
       if (history && history.length > 0) {
         historyContainer.innerHTML = history.map(item => `
