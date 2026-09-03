@@ -140,30 +140,18 @@
       checkNewScans();
     }
 
-    // Fonction de correction de l'heure (Conversion UTC/GMT -> Europe/Paris)
-    function corrigerHeure(heureBrute) {
+    // Nettoyage simple pour n'afficher que l'heure exacte envoyée par le Sheet (ex: "14:25:00")
+    function nettoyerHeure(heureBrute) {
       if (!heureBrute) return "";
       
-      const parts = heureBrute.split(':');
-      if (parts.length >= 2) {
-        const now = new Date();
-        const dateUtc = new Date(Date.UTC(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          parseInt(parts[0], 10),
-          parseInt(parts[1], 10),
-          parts[2] ? parseInt(parts[2], 10) : 0
-        ));
-        
-        return dateUtc.toLocaleTimeString('fr-FR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          timeZone: 'Europe/Paris'
-        });
+      // Si l'heure contient une date ISO complète (ex: 2026-09-03T14:25:00.000Z)
+      if (heureBrute.includes("T")) {
+        const timePart = heureBrute.split("T")[1];
+        return timePart.substring(0, 8);
       }
-      return heureBrute;
+      
+      // Si l'heure contient déjà le format HH:mm:ss, on prend juste les 8 premiers caractères
+      return heureBrute.toString().trim().substring(0, 8);
     }
 
     async function checkNewScans() {
@@ -187,7 +175,7 @@
     }
 
     function updateDashboard(latest, history) {
-      const heureCorrige = corrigerHeure(latest.heure);
+      const heureAffichee = nettoyerHeure(latest.heure);
 
       // Mise à jour du bloc principal
       const latestContainer = document.getElementById("latest-scan");
@@ -196,7 +184,7 @@
       latestContainer.innerHTML = `
         <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom}">
         <div class="status-box">
-          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureCorrige})</p>
+          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureAffichee})</p>
           <h3>${latest.nom}</h3>
           <p>ID : ${latest.id}</p>
         </div>
@@ -208,7 +196,7 @@
         historyContainer.innerHTML = history.map(item => `
           <div class="history-item">
             <span><strong>${item.nom}</strong> <small style="color:#666;">(${item.id})</small></span>
-            <span style="color:#00b894; font-weight:bold;">${corrigerHeure(item.heure)}</span>
+            <span style="color:#00b894; font-weight:bold;">${nettoyerHeure(item.heure)}</span>
           </div>
         `).join('');
       }
