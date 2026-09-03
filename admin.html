@@ -75,9 +75,8 @@
       background-color: #00b894;
     }
 
-    /* Couleur pour le bloc principal des sorties */
     .status-box.sortie {
-      background-color: #1ba1b5;
+      background-color: #d63031;
     }
 
     .status-box h3 {
@@ -91,7 +90,6 @@
       font-size: 0.85em;
     }
 
-    /* Organisation responsive des colonnes */
     .columns-container {
       display: flex;
       flex-direction: column;
@@ -131,7 +129,6 @@
       border-bottom-color: #00b894;
     }
 
-    /* Titre SORTIES (OUT) en rouge */
     .column-title.out {
       color: #d63031;
       border-bottom-color: #d63031;
@@ -190,7 +187,6 @@
       background-color: #e6f9f5;
     }
 
-    /* Badge heure de sortie en rouge */
     .time-badge.sortie {
       color: #d63031;
       background-color: #ffecec;
@@ -212,14 +208,11 @@
 
   <h2>Monitoring Entrées & Sorties</h2>
 
-  <!-- Dernier scan -->
   <div class="card" id="latest-scan">
     <p class="empty-msg">En attente du premier scan...</p>
   </div>
 
-  <!-- Conteneur adaptatif IN / OUT -->
   <div class="columns-container">
-    
     <div class="column">
       <div class="column-title in">ENTRÉES (IN)</div>
       <div id="history-in">
@@ -233,7 +226,6 @@
         <p class="empty-msg">Aucune sortie</p>
       </div>
     </div>
-
   </div>
 
   <script>
@@ -250,10 +242,14 @@
       return str.substring(0, 8);
     }
 
-    async function checkNewScans() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?action=getLastScan`);
-        const data = await response.json();
+    function checkNewScansJSONP() {
+      const callbackName = "handleLastScan_" + Math.floor(Math.random() * 100000);
+
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) {
+          scriptTag.parentNode.removeChild(scriptTag);
+        }
 
         if (data && data.success && data.scan) {
           const currentScanKey = `${data.scan.id}_${data.scan.heure}_${data.scan.statut}`;
@@ -262,9 +258,11 @@
             updateDashboard(data.scan, data.history);
           }
         }
-      } catch (error) {
-        console.error("Erreur de récupération :", error);
-      }
+      };
+
+      const scriptTag = document.createElement("script");
+      scriptTag.src = `${SCRIPT_URL}?action=getLastScan&callback=${callbackName}`;
+      document.body.appendChild(scriptTag);
     }
 
     function createHistoryRow(item, isEntree) {
@@ -294,7 +292,7 @@
       const statusText = isEntree ? "ENTRÉE VALIDÉE" : "SORTIE VALIDÉE";
 
       const hasPhoto = latest.photoUrl && String(latest.photoUrl).trim().length > 5;
-      const htmlPhoto = hasPhoto ? `<img class="avatar" style="border-color:${isEntree ? '#00b894' : '#1ba1b5'}" src="${latest.photoUrl}" alt="Photo">` : '';
+      const htmlPhoto = hasPhoto ? `<img class="avatar" style="border-color:${isEntree ? '#00b894' : '#d63031'}" src="${latest.photoUrl}" alt="Photo">` : '';
 
       latestContainer.innerHTML = `
         ${htmlPhoto}
@@ -322,8 +320,8 @@
       }
     }
 
-    setInterval(checkNewScans, 2500);
-    checkNewScans();
+    setInterval(checkNewScansJSONP, 2500);
+    checkNewScansJSONP();
   </script>
 </body>
 </html>
