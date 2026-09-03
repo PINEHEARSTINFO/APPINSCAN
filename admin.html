@@ -54,7 +54,7 @@
       color: white;
       border-radius: 8px;
       padding: 15px 10px;
-      margin-top: 10px;
+      margin-top: 5px;
     }
     .status-box h3 {
       margin: 5px 0;
@@ -160,12 +160,14 @@
 
     function updateDashboard(latest, history) {
       const heureAffichee = nettoyerHeure(latest.heure);
-
       const latestContainer = document.getElementById("latest-scan");
-      const photoSrc = (latest.photoUrl && String(latest.photoUrl).length > 5) ? latest.photoUrl : "https://via.placeholder.com/110";
-      
+
+      // Vérification si une photo valide existe
+      const hasPhoto = latest.photoUrl && String(latest.photoUrl).trim().length > 5;
+      const htmlPhoto = hasPhoto ? `<img class="avatar" src="${latest.photoUrl}" alt="Photo de ${latest.nom || 'Membre'}">` : '';
+
       latestContainer.innerHTML = `
-        <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom || 'Membre'}">
+        ${htmlPhoto}
         <div class="status-box">
           <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureAffichee})</p>
           <h3>${latest.nom || 'Nom indisponible'}</h3>
