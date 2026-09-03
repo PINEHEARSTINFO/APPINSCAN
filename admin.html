@@ -5,13 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tableau de Bord - Contrôle d'Entrée ASTER</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; text-align: center; }
-    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto 20px auto; }
-    .avatar { width: 110px; height: 110px; border-radius: 50%; border: 3px solid #00b894; object-fit: cover; }
-    .status-box { background-color: #00b894; color: white; border-radius: 8px; padding: 15px; margin-top: 15px; }
-    .status-box h3 { margin: 5px 0; font-size: 1.3em; text-transform: capitalize; }
-    .history-list { text-align: left; max-width: 400px; margin: 0 auto; background: white; border-radius: 8px; padding: 10px; }
-    .history-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.9em; display: flex; justify-content: space-between; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 15px;
+      text-align: center;
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      margin: 0 auto 25px auto;
+    }
+    .avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 3px solid #00b894;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+    .status-box {
+      background-color: #00b894;
+      color: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .status-box h3 {
+      margin: 5px 0;
+      font-size: 1.3em;
+      text-transform: capitalize;
+    }
+    .status-box p {
+      margin: 3px 0;
+    }
+    .history-container {
+      text-align: left;
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .history-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+      font-size: 0.9em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    .empty-msg {
+      color: #aaa;
+      text-align: center;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -20,19 +80,20 @@
   
   <!-- Fiche du dernier membre scanné -->
   <div class="card" id="latest-scan">
-    <p style="color: #888;">En attente du premier scan...</p>
+    <p class="empty-msg">En attente du premier scan...</p>
   </div>
 
-  <!-- Historique des derniers passages -->
+  <!-- Historique des récents passages -->
   <h3>Derniers passages</h3>
-  <div class="history-list" id="history-container">
-    <p style="color: #aaa; text-align: center;">Aucun historique récent</p>
+  <div class="history-container" id="history-list">
+    <p class="empty-msg">Aucun historique récent</p>
   </div>
 
   <script>
-    // Remplacez par l'URL de votre Web App Google Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzYK6QJ3yP7hmgfbrlT4c-dqZmD-qxwCMdN5TE3UvNMB8dWmTRky-SkTqWumYXH5_h_kQ/exec"; 
-    let lastRecordedId = null;
+    // URL de votre Web App Google Apps Script
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqS--26A_S4qWj6p_XzK5E0mQ5qS_0J4w_P_1J1J1J1J1J1J1J1J/exec"; 
+    
+    let lastScanKey = null;
 
     async function checkNewScans() {
       try {
@@ -40,36 +101,40 @@
         const data = await response.json();
 
         if (data.success && data.scan) {
-          // Vérifier s'il s'agit d'un nouveau scan
-          if (data.scan.timestamp !== lastRecordedId) {
-            lastRecordedId = data.scan.timestamp;
+          // Génération d'une clé unique basée sur l'ID et l'heure
+          const currentScanKey = data.scan.id + "_" + data.scan.heure;
+          
+          if (currentScanKey !== lastScanKey) {
+            lastScanKey = currentScanKey;
             updateDashboard(data.scan, data.history);
           }
         }
       } catch (error) {
-        console.error("Erreur de synchronisation:", error);
+        console.error("Erreur de synchronisation avec le serveur :", error);
       }
     }
 
     function updateDashboard(latest, history) {
-      // Mettre à jour le dernier membre scanné
+      // 1. Mise à jour de la carte principale
       const latestContainer = document.getElementById("latest-scan");
+      const photoSrc = latest.photoUrl && latest.photoUrl.length > 5 ? latest.photoUrl : "https://via.placeholder.com/110";
+      
       latestContainer.innerHTML = `
-        <img class="avatar" src="${latest.photoUrl || 'https://via.placeholder.com/110'}" alt="Photo">
+        <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom}">
         <div class="status-box">
-          <p style="margin:0; font-weight:bold;">✓ ENTRÉE VALIDÉE (${latest.heure})</p>
+          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${latest.heure})</p>
           <h3>${latest.nom}</h3>
-          <p style="margin:0;">ID : ${latest.id}</p>
+          <p>ID : ${latest.id}</p>
         </div>
       `;
 
-      // Mettre à jour l'historique rapide
-      const historyContainer = document.getElementById("history-container");
+      // 2. Mise à jour de la liste d'historique
+      const historyContainer = document.getElementById("history-list");
       if (history && history.length > 0) {
         historyContainer.innerHTML = history.map(item => `
           <div class="history-item">
-            <span><strong>${item.nom}</strong> (${item.id})</span>
-            <span style="color:#666;">${item.heure}</span>
+            <span><strong>${item.nom}</strong> <small style="color:#666;">(${item.id})</small></span>
+            <span style="color:#00b894; font-weight:bold;">${item.heure}</span>
           </div>
         `).join('');
       }
