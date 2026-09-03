@@ -71,13 +71,8 @@
       color: white;
     }
 
-    .status-box.entree {
-      background-color: #00b894;
-    }
-
-    .status-box.sortie {
-      background-color: #d63031;
-    }
+    .status-box.entree { background-color: #00b894; }
+    .status-box.sortie { background-color: #d63031; }
 
     .status-box h3 {
       margin: 4px 0;
@@ -100,9 +95,7 @@
     }
 
     @media (min-width: 600px) {
-      .columns-container {
-        flex-direction: row;
-      }
+      .columns-container { flex-direction: row; }
     }
 
     .column {
@@ -124,15 +117,8 @@
       text-align: center;
     }
 
-    .column-title.in {
-      color: #00b894;
-      border-bottom-color: #00b894;
-    }
-
-    .column-title.out {
-      color: #d63031;
-      border-bottom-color: #d63031;
-    }
+    .column-title.in { color: #00b894; border-bottom-color: #00b894; }
+    .column-title.out { color: #d63031; border-bottom-color: #d63031; }
 
     .history-item {
       border-bottom: 1px solid #f0f0f0;
@@ -144,9 +130,7 @@
       gap: 8px;
     }
 
-    .history-item:last-child {
-      border-bottom: none;
-    }
+    .history-item:last-child { border-bottom: none; }
 
     .history-user-info {
       display: flex;
@@ -182,19 +166,20 @@
       flex-shrink: 0;
     }
 
-    .time-badge.entree {
-      color: #00b894;
-      background-color: #e6f9f5;
-    }
-
-    .time-badge.sortie {
-      color: #d63031;
-      background-color: #ffecec;
-    }
+    .time-badge.entree { color: #00b894; background-color: #e6f9f5; }
+    .time-badge.sortie { color: #d63031; background-color: #ffecec; }
 
     .empty-msg {
       color: #aaa;
       text-align: center;
+      margin: 8px 0;
+      font-size: 0.85em;
+    }
+
+    .error-msg {
+      color: #d63031;
+      text-align: center;
+      font-weight: bold;
       margin: 8px 0;
       font-size: 0.85em;
     }
@@ -262,6 +247,13 @@
 
       const scriptTag = document.createElement("script");
       scriptTag.src = `${SCRIPT_URL}?action=getLastScan&callback=${callbackName}`;
+      
+      scriptTag.onerror = function() {
+        delete window[callbackName];
+        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+        console.error("Erreur de connexion au serveur Google Apps Script");
+      };
+
       document.body.appendChild(scriptTag);
     }
 
