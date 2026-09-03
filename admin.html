@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#f4f6f9">
 
-  <title>Tableau de Bord - Monitoring Entrées ASTER</title>
+  <title>Tableau de Bord - Monitoring Entrées & Sorties ASTER</title>
   
   <style>
     * {
@@ -45,7 +45,6 @@
       font-size: 1.4em;
     }
 
-    /* Conteneur principal centré avec largeur maximale fixée pour grands écrans */
     .card {
       background: white;
       border-radius: 12px;
@@ -66,11 +65,20 @@
     }
 
     .status-box {
-      background-color: #00b894;
-      color: white;
       border-radius: 8px;
       padding: 15px 10px;
       margin-top: 5px;
+      color: white;
+    }
+
+    /* Style si c'est une Entrée */
+    .status-box.entree {
+      background-color: #00b894;
+    }
+
+    /* Style si c'est une Sortie */
+    .status-box.sortie {
+      background-color: #e17055;
     }
 
     .status-box h3 {
@@ -133,6 +141,24 @@
       flex-shrink: 0;
     }
 
+    .time-badge {
+      font-weight: bold;
+      margin-left: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .time-badge.entree {
+      color: #00b894;
+      background-color: #e6f9f5;
+    }
+
+    .time-badge.sortie {
+      color: #e17055;
+      background-color: #fdf0ed;
+    }
+
     .empty-msg {
       color: #aaa;
       text-align: center;
@@ -146,14 +172,12 @@
 </head>
 <body>
 
-  <!-- Logo de l'événement -->
   <div class="logo-container">
     <img src="logo.png" alt="Logo ASTER" id="app-logo">
   </div>
 
-  <h2>Monitoring Entrées en Direct</h2>
+  <h2>Monitoring Entrées & Sorties</h2>
 
-  <!-- URL conservée en arrière-plan -->
   <input type="hidden" id="scriptUrl" value="https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec">
 
   <!-- Fiche du dernier membre scanné -->
@@ -161,7 +185,7 @@
     <p class="empty-msg">En attente du premier scan...</p>
   </div>
 
-  <!-- Historique des récents passages -->
+  <!-- Historique -->
   <div class="history-title">Derniers passages</div>
   <div class="history-container" id="history-list">
     <p class="empty-msg">Aucun historique récent</p>
@@ -189,7 +213,7 @@
         const data = await response.json();
 
         if (data.success && data.scan) {
-          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure);
+          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure) + "_" + String(data.scan.statut);
           if (currentScanKey !== lastScanKey) {
             lastScanKey = currentScanKey;
             updateDashboard(data.scan, data.history);
@@ -204,13 +228,17 @@
       const heureAffichee = nettoyerHeure(latest.heure);
       const latestContainer = document.getElementById("latest-scan");
 
+      const isEntree = (latest.statut === "Entrée");
+      const statusClass = isEntree ? "entree" : "sortie";
+      const statusText = isEntree ? "ENTRÉE VALIDÉE" : "SORTIE VALIDÉE";
+
       const hasPhoto = latest.photoUrl && String(latest.photoUrl).trim().length > 5;
-      const htmlPhoto = hasPhoto ? `<img class="avatar" src="${latest.photoUrl}" alt="Photo">` : '';
+      const htmlPhoto = hasPhoto ? `<img class="avatar" style="border-color:${isEntree ? '#00b894' : '#e17055'}" src="${latest.photoUrl}" alt="Photo">` : '';
 
       latestContainer.innerHTML = `
         ${htmlPhoto}
-        <div class="status-box">
-          <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureAffichee})</p>
+        <div class="status-box ${statusClass}">
+          <p style="font-weight:bold;">✓ ${statusText} (${heureAffichee})</p>
           <h3>${latest.nom || 'Inconnu'}</h3>
           <p>ID : ${latest.id || 'N/A'}</p>
         </div>
@@ -223,6 +251,10 @@
             ? item.photoUrl 
             : 'https://via.placeholder.com/36?text=?';
 
+          const itemIsEntree = (item.statut === "Entrée");
+          const badgeClass = itemIsEntree ? "entree" : "sortie";
+          const labelStatut = itemIsEntree ? "E" : "S";
+
           return `
             <div class="history-item">
               <div class="history-user-info">
@@ -232,7 +264,7 @@
                   <small style="color:#666;">(${item.id || ''})</small>
                 </span>
               </div>
-              <span style="color:#00b894; font-weight:bold; margin-left: 10px;">${nettoyerHeure(item.heure)}</span>
+              <span class="time-badge ${badgeClass}">${labelStatut} - ${nettoyerHeure(item.heure)}</span>
             </div>
           `;
         }).join('');
