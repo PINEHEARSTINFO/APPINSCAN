@@ -86,13 +86,28 @@
     .history-item:last-child {
       border-bottom: none;
     }
+    /* Alignement bloc gauche avec miniature */
+    .history-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    /* Style de la photo miniature */
+    .mini-thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background-color: #eee;
+      flex-shrink: 0;
+    }
     .empty-msg {
       color: #aaa;
       text-align: center;
       margin: 10px 0;
     }
     
-    /* Masquer discrètement l'input URL */
     #scriptUrl {
       display: none;
     }
@@ -126,7 +141,6 @@
     const DEFAULT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
     const urlInput = document.getElementById("scriptUrl");
 
-    // Traitement propre de l'affichage de l'heure
     function nettoyerHeure(heureBrute) {
       if (!heureBrute) return "--:--:--";
       const strHeure = String(heureBrute).trim();
@@ -162,7 +176,6 @@
       const heureAffichee = nettoyerHeure(latest.heure);
       const latestContainer = document.getElementById("latest-scan");
 
-      // Vérification si une photo valide existe
       const hasPhoto = latest.photoUrl && String(latest.photoUrl).trim().length > 5;
       const htmlPhoto = hasPhoto ? `<img class="avatar" src="${latest.photoUrl}" alt="Photo de ${latest.nom || 'Membre'}">` : '';
 
@@ -177,12 +190,21 @@
 
       const historyContainer = document.getElementById("history-list");
       if (history && history.length > 0) {
-        historyContainer.innerHTML = history.map(item => `
-          <div class="history-item">
-            <span><strong>${item.nom || 'Inconnu'}</strong> <small style="color:#666;">(${item.id || ''})</small></span>
-            <span style="color:#00b894; font-weight:bold;">${nettoyerHeure(item.heure)}</span>
-          </div>
-        `).join('');
+        historyContainer.innerHTML = history.map(item => {
+          const thumbSrc = (item.photoUrl && String(item.photoUrl).trim().length > 5) 
+            ? item.photoUrl 
+            : 'https://via.placeholder.com/36?text=?';
+
+          return `
+            <div class="history-item">
+              <div class="history-user-info">
+                <img class="mini-thumb" src="${thumbSrc}" alt="Avatar">
+                <span><strong>${item.nom || 'Inconnu'}</strong> <small style="color:#666;">(${item.id || ''})</small></span>
+              </div>
+              <span style="color:#00b894; font-weight:bold;">${nettoyerHeure(item.heure)}</span>
+            </div>
+          `;
+        }).join('');
       } else {
         historyContainer.innerHTML = '<p class="empty-msg">Aucun historique récent</p>';
       }
