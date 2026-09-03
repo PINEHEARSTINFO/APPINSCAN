@@ -75,8 +75,9 @@
       background-color: #00b894;
     }
 
+    /* Couleur personnalisée pour les sorties */
     .status-box.sortie {
-      background-color: #e17055;
+      background-color: #1ba1b5;
     }
 
     .status-box h3 {
@@ -90,18 +91,25 @@
       font-size: 0.85em;
     }
 
-    /* Organisation responsive pour mobile et desktop */
+    /* Organisation responsive des colonnes */
     .columns-container {
       display: flex;
-      flex-wrap: wrap; /* S'empile automatiquement sur mobile */
+      flex-direction: column; /* Par défaut sur mobile : empilé verticalement */
       gap: 12px;
       max-width: 550px;
       width: 100%;
       margin: 0 auto;
     }
 
+    /* Passer en 2 colonnes côte à côte uniquement sur ordinateur / écran large (>= 600px) */
+    @media (min-width: 600px) {
+      .columns-container {
+        flex-direction: row;
+      }
+    }
+
     .column {
-      flex: 1 1 240px; /* S'agrandit pour occuper tout l'écran sur mobile (<480px) */
+      flex: 1;
       width: 100%;
       background: white;
       border-radius: 8px;
@@ -125,8 +133,8 @@
     }
 
     .column-title.out {
-      color: #e17055;
-      border-bottom-color: #e17055;
+      color: #1ba1b5;
+      border-bottom-color: #1ba1b5;
     }
 
     .history-item {
@@ -147,7 +155,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      min-width: 0; /* Permet le découpage fluide du texte */
+      min-width: 0;
       flex: 1;
     }
 
@@ -183,8 +191,8 @@
     }
 
     .time-badge.sortie {
-      color: #e17055;
-      background-color: #fdf0ed;
+      color: #1ba1b5;
+      background-color: #e6f6f8;
     }
 
     .empty-msg {
@@ -285,7 +293,7 @@
       const statusText = isEntree ? "ENTRÉE VALIDÉE" : "SORTIE VALIDÉE";
 
       const hasPhoto = latest.photoUrl && String(latest.photoUrl).trim().length > 5;
-      const htmlPhoto = hasPhoto ? `<img class="avatar" style="border-color:${isEntree ? '#00b894' : '#e17055'}" src="${latest.photoUrl}" alt="Photo">` : '';
+      const htmlPhoto = hasPhoto ? `<img class="avatar" style="border-color:${isEntree ? '#00b894' : '#1ba1b5'}" src="${latest.photoUrl}" alt="Photo">` : '';
 
       latestContainer.innerHTML = `
         ${htmlPhoto}
