@@ -50,7 +50,7 @@
       border-radius: 12px;
       padding: 18px 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-      max-width: 420px;
+      max-width: 550px;
       width: 100%;
       margin: 0 auto 20px auto;
     }
@@ -90,33 +90,50 @@
       font-size: 0.9em;
     }
 
-    .history-title {
-      max-width: 420px;
-      margin: 0 auto 10px auto;
-      font-size: 1.1em;
-      color: #444;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .history-container {
-      text-align: left;
-      max-width: 420px;
+    /* Grille 2 colonnes pour l'historique IN / OUT */
+    .columns-container {
+      display: flex;
+      gap: 12px;
+      max-width: 550px;
       width: 100%;
       margin: 0 auto;
+    }
+
+    .column {
+      flex: 1;
       background: white;
       border-radius: 8px;
-      padding: 15px;
+      padding: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      text-align: left;
+    }
+
+    .column-title {
+      font-weight: bold;
+      font-size: 1em;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      border-bottom: 2px solid #eee;
+      text-align: center;
+    }
+
+    .column-title.in {
+      color: #00b894;
+      border-bottom-color: #00b894;
+    }
+
+    .column-title.out {
+      color: #e17055;
+      border-bottom-color: #e17055;
     }
 
     .history-item {
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 8px 0;
       font-size: 0.85em;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
 
     .history-item:last-child {
@@ -126,12 +143,13 @@
     .history-user-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      overflow: hidden;
     }
 
     .mini-thumb {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       object-fit: cover;
       border: 1px solid #ddd;
@@ -139,12 +157,20 @@
       flex-shrink: 0;
     }
 
+    .user-name {
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
+    }
+
     .time-badge {
       font-weight: bold;
-      margin-left: 10px;
-      padding: 3px 8px;
+      padding: 2px 6px;
       border-radius: 4px;
-      font-size: 0.9em;
+      font-size: 0.8em;
+      flex-shrink: 0;
     }
 
     .time-badge.entree {
@@ -161,6 +187,7 @@
       color: #aaa;
       text-align: center;
       margin: 10px 0;
+      font-size: 0.85em;
     }
   </style>
 </head>
@@ -177,10 +204,25 @@
     <p class="empty-msg">En attente du premier scan...</p>
   </div>
 
-  <!-- Historique -->
-  <div class="history-title">Derniers passages</div>
-  <div class="history-container" id="history-list">
-    <p class="empty-msg">Aucun historique récent</p>
+  <!-- Historique séparé IN / OUT -->
+  <div class="columns-container">
+    
+    <!-- Colonne IN -->
+    <div class="column">
+      <div class="column-title in">ENTRÉES (IN)</div>
+      <div id="history-in">
+        <p class="empty-msg">Aucune entrée</p>
+      </div>
+    </div>
+
+    <!-- Colonne OUT -->
+    <div class="column">
+      <div class="column-title out">SORTIES (OUT)</div>
+      <div id="history-out">
+        <p class="empty-msg">Aucune sortie</p>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -214,6 +256,24 @@
       }
     }
 
+    function createHistoryRow(item, isEntree) {
+      const thumbSrc = (item.photoUrl && String(item.photoUrl).trim().length > 5) 
+        ? item.photoUrl 
+        : 'https://via.placeholder.com/32?text=?';
+
+      const badgeClass = isEntree ? "entree" : "sortie";
+
+      return `
+        <div class="history-item">
+          <div class="history-user-info">
+            <img class="mini-thumb" src="${thumbSrc}" alt="Avatar">
+            <span class="user-name" title="${item.nom || ''}">${item.nom || 'Inconnu'}</span>
+          </div>
+          <span class="time-badge ${badgeClass}">${nettoyerHeure(item.heure)}</span>
+        </div>
+      `;
+    }
+
     function updateDashboard(latest, history) {
       const heureAffichee = nettoyerHeure(latest.heure);
       const latestContainer = document.getElementById("latest-scan");
@@ -234,32 +294,21 @@
         </div>
       `;
 
-      const historyContainer = document.getElementById("history-list");
+      // Séparation des données pour IN et OUT
+      const listIn = document.getElementById("history-in");
+      const listOut = document.getElementById("history-out");
+
       if (history && history.length > 0) {
-        historyContainer.innerHTML = history.map(item => {
-          const thumbSrc = (item.photoUrl && String(item.photoUrl).trim().length > 5) 
-            ? item.photoUrl 
-            : 'https://via.placeholder.com/36?text=?';
+        const entriesIn = history.filter(item => item.statut === "Entrée");
+        const entriesOut = history.filter(item => item.statut === "Sortie");
 
-          const itemIsEntree = (item.statut === "Entrée");
-          const badgeClass = itemIsEntree ? "entree" : "sortie";
-          const labelStatut = itemIsEntree ? "E" : "S";
+        listIn.innerHTML = entriesIn.length > 0 
+          ? entriesIn.map(item => createHistoryRow(item, true)).join('')
+          : '<p class="empty-msg">Aucune entrée</p>';
 
-          return `
-            <div class="history-item">
-              <div class="history-user-info">
-                <img class="mini-thumb" src="${thumbSrc}" alt="Avatar">
-                <span>
-                  <strong>${item.nom || 'Inconnu'}</strong> 
-                  <small style="color:#666;">(${item.id || ''})</small>
-                </span>
-              </div>
-              <span class="time-badge ${badgeClass}">${labelStatut} - ${nettoyerHeure(item.heure)}</span>
-            </div>
-          `;
-        }).join('');
-      } else {
-        historyContainer.innerHTML = '<p class="empty-msg">Aucun historique récent</p>';
+        listOut.innerHTML = entriesOut.length > 0 
+          ? entriesOut.map(item => createHistoryRow(item, false)).join('')
+          : '<p class="empty-msg">Aucune sortie</p>';
       }
     }
 
