@@ -15,6 +15,20 @@
       max-width: 480px;
       margin: 0 auto;
       box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+
+    /* Style du conteneur du logo */
+    .logo-container {
+      margin: 0 auto 15px auto;
+      max-width: 150px;
+    }
+
+    .logo-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
     }
 
     .header-title {
@@ -48,6 +62,7 @@
       font-size: 0.95em;
       margin-bottom: 15px;
       outline: none;
+      text-align: left;
     }
 
     .search-input:focus {
@@ -57,6 +72,7 @@
     .members-container {
       max-height: 350px;
       overflow-y: auto;
+      text-align: left;
     }
 
     .member-item {
@@ -92,6 +108,11 @@
 <body>
 
   <div class="card-list">
+    <!-- Integration du Logo au-dessus du titre -->
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo">
+    </div>
+
     <div class="header-title">
       Liste des Inscrits <span class="badge-count" id="totalCount">0</span>
     </div>
@@ -103,61 +124,5 @@
     </div>
   </div>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
-    let tousLesMembres = [];
-
-    async function chargerMembres() {
-      try {
-        const response = await fetch(`${SCRIPT_URL}?action=getMembers`);
-        const data = await response.json();
-
-        if (data.success && data.members) {
-          tousLesMembres = data.members;
-          document.getElementById("totalCount").innerText = data.total;
-          afficherMembres(tousLesMembres);
-        } else {
-          document.getElementById("membersList").innerHTML = '<div class="loading-text">Aucun membre trouvé.</div>';
-        }
-      } catch (err) {
-        console.error(err);
-        document.getElementById("membersList").innerHTML = '<div class="loading-text">Erreur de chargement.</div>';
-      }
-    }
-
-    function afficherMembres(liste) {
-      const container = document.getElementById("membersList");
-      if (liste.length === 0) {
-        container.innerHTML = '<div class="loading-text">Aucun résultat.</div>';
-        return;
-      }
-
-      container.innerHTML = liste.map(m => {
-        const photo = (m.photoUrl && m.photoUrl.length > 5) ? m.photoUrl : 'https://via.placeholder.com/40?text=?';
-        return `
-          <div class="member-item">
-            <div class="member-info">
-              <img class="member-avatar" src="${photo}" alt="Avatar">
-              <div>
-                <div class="member-name">${m.nom}</div>
-                <div class="member-id">${m.id}</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function filtrerMembres() {
-      const recherche = document.getElementById("searchInput").value.toLowerCase();
-      const resultats = tousLesMembres.filter(m => 
-        m.nom.toLowerCase().includes(recherche) || m.id.toLowerCase().includes(recherche)
-      );
-      afficherMembres(resultats);
-    }
-
-    // Lancement au chargement de la page
-    chargerMembres();
-  </script>
 </body>
 </html>
