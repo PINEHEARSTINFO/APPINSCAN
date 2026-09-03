@@ -1,10 +1,149 @@
-<div class="logo-container">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#f4f6f9">
+
+  <title>Tableau de Bord - Monitoring Entrées & Sorties ASTER</title>
+  
+  <style>
+    * {
+      box-sizing: border-box !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f9;
+      text-align: center;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .logo-container {
+      margin: 5px auto 10px auto;
+      max-width: 140px;
+      width: 100%;
+    }
+    
+    .logo-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    h2 {
+      color: #333;
+      margin: 5px 0 15px 0;
+      font-size: 1.2em;
+    }
+
+    .columns-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 600px) {
+      .columns-container { flex-direction: row; }
+    }
+
+    .column {
+      flex: 1;
+      width: 100%;
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      text-align: left;
+    }
+
+    .column-title {
+      font-weight: bold;
+      font-size: 0.95em;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      border-bottom: 2px solid #eee;
+      text-align: center;
+    }
+
+    .column-title.in { color: #00b894; border-bottom-color: #00b894; }
+    .column-title.out { color: #d63031; border-bottom-color: #d63031; }
+
+    .history-item {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 8px 0;
+      font-size: 0.85em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .mini-thumb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background-color: #eee;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #333;
+    }
+
+    .time-badge {
+      font-weight: bold;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      flex-shrink: 0;
+    }
+
+    .time-badge.entree { color: #00b894; background-color: #e6f9f5; }
+    .time-badge.sortie { color: #d63031; background-color: #ffecec; }
+
+    .empty-msg {
+      color: #aaa;
+      text-align: center;
+      margin: 8px 0;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-container">
     <img src="logo.png" alt="Logo ASTER" id="app-logo">
   </div>
 
   <h2>Monitoring Entrées & Sorties</h2>
-
-  <!-- La grande carte du dernier passage a été retirée d'ici -->
 
   <div class="columns-container">
     <div class="column">
@@ -21,3 +160,89 @@
       </div>
     </div>
   </div>
+
+  <script>
+    let lastScanKey = null;
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
+
+    function nettoyerHeure(heureBrute) {
+      if (!heureBrute) return "--:--:--";
+      const str = String(heureBrute).trim();
+      if (str.includes("T")) {
+        const parts = str.split("T")[1];
+        return parts ? parts.substring(0, 8) : str;
+      }
+      return str.substring(0, 8);
+    }
+
+    function checkNewScansJSONP() {
+      const callbackName = "handleLastScan_" + Math.floor(Math.random() * 100000);
+
+      window[callbackName] = function(data) {
+        delete window[callbackName];
+        if (scriptTag && scriptTag.parentNode) {
+          scriptTag.parentNode.removeChild(scriptTag);
+        }
+
+        if (data && data.success && data.scan) {
+          const currentScanKey = `${data.scan.id}_${data.scan.heure}_${data.scan.statut}`;
+          if (currentScanKey !== lastScanKey) {
+            lastScanKey = currentScanKey;
+            updateDashboard(data.history);
+          }
+        }
+      };
+
+      const scriptTag = document.createElement("script");
+      scriptTag.src = `${SCRIPT_URL}?action=getLastScan&callback=${callbackName}`;
+      
+      scriptTag.onerror = function() {
+        delete window[callbackName];
+        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
+        console.error("Erreur de connexion au serveur Google Apps Script");
+      };
+
+      document.body.appendChild(scriptTag);
+    }
+
+    function createHistoryRow(item, isEntree) {
+      const thumbSrc = (item.photoUrl && String(item.photoUrl).trim().length > 5) 
+        ? item.photoUrl 
+        : 'https://via.placeholder.com/32?text=?';
+
+      const badgeClass = isEntree ? "entree" : "sortie";
+
+      return `
+        <div class="history-item">
+          <div class="history-user-info">
+            <img class="mini-thumb" src="${thumbSrc}" alt="Avatar">
+            <span class="user-name" title="${item.nom || ''}">${item.nom || 'Inconnu'}</span>
+          </div>
+          <span class="time-badge ${badgeClass}">${nettoyerHeure(item.heure)}</span>
+        </div>
+      `;
+    }
+
+    function updateDashboard(history) {
+      const listIn = document.getElementById("history-in");
+      const listOut = document.getElementById("history-out");
+
+      if (history && history.length > 0) {
+        const entriesIn = history.filter(item => item.statut === "Entrée");
+        const entriesOut = history.filter(item => item.statut === "Sortie");
+
+        listIn.innerHTML = entriesIn.length > 0 
+          ? entriesIn.map(item => createHistoryRow(item, true)).join('')
+          : '<p class="empty-msg">Aucune entrée</p>';
+
+        listOut.innerHTML = entriesOut.length > 0 
+          ? entriesOut.map(item => createHistoryRow(item, false)).join('')
+          : '<p class="empty-msg">Aucune sortie</p>';
+      }
+    }
+
+    setInterval(checkNewScansJSONP, 2500);
+    checkNewScansJSONP();
+  </script>
+</body>
+</html>
