@@ -75,7 +75,7 @@
       background-color: #00b894;
     }
 
-    /* Couleur personnalisée pour les sorties */
+    /* Couleur pour le bloc principal des sorties */
     .status-box.sortie {
       background-color: #1ba1b5;
     }
@@ -94,14 +94,13 @@
     /* Organisation responsive des colonnes */
     .columns-container {
       display: flex;
-      flex-direction: column; /* Par défaut sur mobile : empilé verticalement */
+      flex-direction: column;
       gap: 12px;
       max-width: 550px;
       width: 100%;
       margin: 0 auto;
     }
 
-    /* Passer en 2 colonnes côte à côte uniquement sur ordinateur / écran large (>= 600px) */
     @media (min-width: 600px) {
       .columns-container {
         flex-direction: row;
@@ -132,9 +131,10 @@
       border-bottom-color: #00b894;
     }
 
+    /* Titre SORTIES (OUT) en rouge */
     .column-title.out {
-      color: #1ba1b5;
-      border-bottom-color: #1ba1b5;
+      color: #d63031;
+      border-bottom-color: #d63031;
     }
 
     .history-item {
@@ -190,9 +190,10 @@
       background-color: #e6f9f5;
     }
 
+    /* Badge heure de sortie en rouge */
     .time-badge.sortie {
-      color: #1ba1b5;
-      background-color: #e6f6f8;
+      color: #d63031;
+      background-color: #ffecec;
     }
 
     .empty-msg {
