@@ -123,7 +123,6 @@
 
     const DEFAULT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
 
-    // Charger l'URL enregistrée en cache ou utiliser l'URL par défaut
     const urlInput = document.getElementById("scriptUrl");
     const storedUrl = localStorage.getItem("apps_script_url");
     
@@ -137,21 +136,28 @@
     function sauvegarderUrl() {
       const url = urlInput.value.trim();
       localStorage.setItem("apps_script_url", url);
+      lastScanKey = null;
       checkNewScans();
     }
 
-    // Nettoyage simple pour n'afficher que l'heure exacte envoyée par le Sheet (ex: "14:25:00")
+    // Traitement universel et sécurisé de l'heure
     function nettoyerHeure(heureBrute) {
-      if (!heureBrute) return "";
+      if (heureBrute === null || heureBrute === undefined || heureBrute === "") return "--:--:--";
       
-      // Si l'heure contient une date ISO complète (ex: 2026-09-03T14:25:00.000Z)
-      if (heureBrute.includes("T")) {
-        const timePart = heureBrute.split("T")[1];
-        return timePart.substring(0, 8);
+      const strHeure = String(heureBrute).trim();
+      
+      // Si format ISO (ex: 1899-12-30T14:25:00.000Z ou 2026-09-03T14:25:00)
+      if (strHeure.indexOf("T") !== -1) {
+        const parts = strHeure.split("T")[1];
+        return parts ? parts.substring(0, 8) : strHeure;
       }
       
-      // Si l'heure contient déjà le format HH:mm:ss, on prend juste les 8 premiers caractères
-      return heureBrute.toString().trim().substring(0, 8);
+      // Si format HH:mm:ss ou similaire
+      if (strHeure.length >= 5) {
+        return strHeure.substring(0, 8);
+      }
+      
+      return strHeure;
     }
 
     async function checkNewScans() {
@@ -162,7 +168,7 @@
         const data = await response.json();
 
         if (data.success && data.scan) {
-          const currentScanKey = data.scan.id + "_" + data.scan.heure;
+          const currentScanKey = String(data.scan.id) + "_" + String(data.scan.heure);
           
           if (currentScanKey !== lastScanKey) {
             lastScanKey = currentScanKey;
@@ -170,7 +176,7 @@
           }
         }
       } catch (error) {
-        console.error("Erreur de communication avec le script Google Apps Script :", error);
+        console.error("Erreur de communication avec Google Apps Script :", error);
       }
     }
 
@@ -179,30 +185,31 @@
 
       // Mise à jour du bloc principal
       const latestContainer = document.getElementById("latest-scan");
-      const photoSrc = (latest.photoUrl && latest.photoUrl.length > 5) ? latest.photoUrl : "https://via.placeholder.com/110";
+      const photoSrc = (latest.photoUrl && String(latest.photoUrl).length > 5) ? latest.photoUrl : "https://via.placeholder.com/110";
       
       latestContainer.innerHTML = `
-        <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom}">
+        <img class="avatar" src="${photoSrc}" alt="Photo de ${latest.nom || 'Membre'}">
         <div class="status-box">
           <p style="font-weight:bold;">✓ ENTRÉE VALIDÉE (${heureAffichee})</p>
-          <h3>${latest.nom}</h3>
-          <p>ID : ${latest.id}</p>
+          <h3>${latest.nom || 'Nom indisponible'}</h3>
+          <p>ID : ${latest.id || 'N/A'}</p>
         </div>
       `;
 
-      // Mise à jour de la liste d'historique
+      // Mise à jour de l'historique
       const historyContainer = document.getElementById("history-list");
       if (history && history.length > 0) {
         historyContainer.innerHTML = history.map(item => `
           <div class="history-item">
-            <span><strong>${item.nom}</strong> <small style="color:#666;">(${item.id})</small></span>
+            <span><strong>${item.nom || 'Inconnu'}</strong> <small style="color:#666;">(${item.id || ''})</small></span>
             <span style="color:#00b894; font-weight:bold;">${nettoyerHeure(item.heure)}</span>
           </div>
         `).join('');
+      } else {
+        historyContainer.innerHTML = '<p class="empty-msg">Aucun historique récent</p>';
       }
     }
 
-    // Interrogation automatique du serveur toutes les 2,5 secondes
     setInterval(checkNewScans, 2500);
     checkNewScans();
   </script>
