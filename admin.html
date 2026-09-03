@@ -2,83 +2,82 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#f4f6f9">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Entrées & Sorties - ASTER</title>
 
-  <title>Tableau de Bord - Monitoring Entrées & Sorties ASTER</title>
-  
   <style>
     * {
-      box-sizing: border-box !important;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
-    html, body {
-      width: 100%;
+      box-sizing: border-box;
       margin: 0;
-      padding: 10px;
+      padding: 0;
+    }
+
+    body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: #f4f6f9;
+      color: #333;
+      padding: 15px;
       text-align: center;
-      -webkit-text-size-adjust: 100%;
     }
 
     .logo-container {
-      margin: 5px auto 10px auto;
-      max-width: 140px;
-      width: 100%;
+      margin: 10px auto 15px auto;
+      width: 110px;
     }
-    
+
     .logo-container img {
       width: 100%;
       height: auto;
       display: block;
-      margin: 0 auto;
     }
 
     h2 {
-      color: #333;
-      margin: 5px 0 15px 0;
-      font-size: 1.2em;
+      font-size: 1.25em;
+      color: #2c3e50;
+      margin-bottom: 20px;
     }
 
     .columns-container {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 15px;
       max-width: 600px;
-      width: 100%;
       margin: 0 auto;
     }
 
     @media (min-width: 600px) {
-      .columns-container { flex-direction: row; }
+      .columns-container {
+        flex-direction: row;
+      }
     }
 
     .column {
       flex: 1;
-      width: 100%;
-      background: white;
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       text-align: left;
     }
 
     .column-title {
       font-weight: bold;
       font-size: 0.95em;
-      padding-bottom: 6px;
-      margin-bottom: 6px;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
       border-bottom: 2px solid #eee;
       text-align: center;
     }
 
-    .column-title.in { color: #00b894; border-bottom-color: #00b894; }
-    .column-title.out { color: #d63031; border-bottom-color: #d63031; }
+    .column-title.in {
+      color: #00b894;
+      border-bottom-color: #00b894;
+    }
+
+    .column-title.out {
+      color: #d63031;
+      border-bottom-color: #d63031;
+    }
 
     .history-item {
       border-bottom: 1px solid #f0f0f0;
@@ -90,14 +89,15 @@
       gap: 8px;
     }
 
-    .history-item:last-child { border-bottom: none; }
+    .history-item:last-child {
+      border-bottom: none;
+    }
 
     .history-user-info {
       display: flex;
       align-items: center;
       gap: 8px;
-      min-width: 0;
-      flex: 1;
+      overflow: hidden;
     }
 
     .mini-thumb {
@@ -126,13 +126,20 @@
       flex-shrink: 0;
     }
 
-    .time-badge.entree { color: #00b894; background-color: #e6f9f5; }
-    .time-badge.sortie { color: #d63031; background-color: #ffecec; }
+    .time-badge.entree {
+      color: #00b894;
+      background-color: #e6f9f5;
+    }
+
+    .time-badge.sortie {
+      color: #d63031;
+      background-color: #ffecec;
+    }
 
     .empty-msg {
       color: #aaa;
       text-align: center;
-      margin: 8px 0;
+      margin: 10px 0;
       font-size: 0.85em;
     }
   </style>
@@ -140,7 +147,7 @@
 <body>
 
   <div class="logo-container">
-    <img src="logo.png" alt="Logo ASTER" id="app-logo">
+    <img src="logo.png" alt="Logo ASTER">
   </div>
 
   <h2>Monitoring Entrées & Sorties</h2>
@@ -162,8 +169,8 @@
   </div>
 
   <script>
-    let lastScanKey = null;
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2F-4Q3_mJ8yzDjTT7AZOs-XfrCozkR2YO58Zx2hFj2Zlmt4ugd8QdJ5xcFfMl2QY04w/exec";
+    let lastScanKey = null;
 
     function nettoyerHeure(heureBrute) {
       if (!heureBrute) return "--:--:--";
@@ -180,9 +187,8 @@
 
       window[callbackName] = function(data) {
         delete window[callbackName];
-        if (scriptTag && scriptTag.parentNode) {
-          scriptTag.parentNode.removeChild(scriptTag);
-        }
+        const script = document.getElementById(callbackName);
+        if (script) script.remove();
 
         if (data && data.success && data.scan) {
           const currentScanKey = `${data.scan.id}_${data.scan.heure}_${data.scan.statut}`;
@@ -194,12 +200,12 @@
       };
 
       const scriptTag = document.createElement("script");
+      scriptTag.id = callbackName;
       scriptTag.src = `${SCRIPT_URL}?action=getLastScan&callback=${callbackName}`;
       
       scriptTag.onerror = function() {
         delete window[callbackName];
-        if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-        console.error("Erreur de connexion au serveur Google Apps Script");
+        scriptTag.remove();
       };
 
       document.body.appendChild(scriptTag);
